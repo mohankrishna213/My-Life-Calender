@@ -19,4 +19,20 @@ class CalendarMathTest {
     @Test fun `empty day has no task intensity`() {
         assertEquals(Intensity.NONE, summarize(LocalDate.now(), emptyList()).intensity)
     }
+
+    @Test fun `days remaining includes today`() {
+        assertEquals(30, daysRemaining(LocalDate.of(2026, 8, 23), LocalDate.of(2026, 9, 21)))
+    }
+
+    @Test fun `grid balances a short goal`() {
+        val grid = calculateGridSpec(32, 320f)
+        assertEquals(8, grid.columns)
+        assertEquals(4, grid.rows)
+        assert(grid.gapDp >= 3f)
+    }
+
+    @Test fun `grid stays within container for a year`() {
+        val grid = calculateGridSpec(365, 320f)
+        assert(grid.columns * grid.cellSizeDp + (grid.columns - 1) * grid.gapDp <= 320.01f)
+    }
 }

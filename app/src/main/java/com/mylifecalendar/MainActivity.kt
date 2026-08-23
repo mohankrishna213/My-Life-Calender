@@ -6,9 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,12 +18,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
@@ -52,6 +54,7 @@ import com.mylifecalendar.data.CalendarRepository
 import com.mylifecalendar.data.Goal
 import com.mylifecalendar.data.Task
 import com.mylifecalendar.domain.Intensity
+import com.mylifecalendar.domain.calculateGridSpec
 import com.mylifecalendar.domain.daysRemaining
 import com.mylifecalendar.domain.datesBetween
 import com.mylifecalendar.domain.summarize
@@ -109,24 +112,52 @@ private fun SetupScreen(viewModel: CalendarViewModel) {
 
 @Composable
 private fun Dashboard(goal: Goal, tasks: List<Task>, viewModel: CalendarViewModel) {
-    var selectedDate by remember { mutableStateOf(LocalDate.now().coerceIn(LocalDate.parse(goal.startDate), LocalDate.parse(goal.endDate))) }
-    var showAddTask by remember { mutableStateOf(false) }
     val start = LocalDate.parse(goal.startDate)
     val end = LocalDate.parse(goal.endDate)
-    val dates = datesBetween(start, end)
+    var selectedDate by remember(goal.startDate, goal.endDate) { mutableStateOf(LocalDate.now().coerceIn(start, end)) }
+    var showAddTask by remember { mutableStateOf(false) }
+    var showEditGoal by remember { mutableStateOf(false) }
+    val calendarDates = datesBetween(start, end)
     val selectedTasks = tasks.filter { it.date == selectedDate.toString() }
     Scaffold(containerColor = Color(0xFFF7F4EE), floatingActionButton = { FloatingActionButton(onClick = { showAddTask = true }, containerColor = Color(0xFF2D6A4F), contentColor = Color.White) { Icon(Icons.Default.Add, "Add task") } }) { padding ->
-        Column(Modifier.padding(padding).padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Text("MY LIFE CALENDAR", style = MaterialTheme.typography.labelLarge, color = Color(0xFF2D6A4F), fontWeight = FontWeight.Bold)
-            Text(goal.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color(0xFF173B2D))
+        Column(
+            Modifier
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("MY LIFE CALENDAR", style = MaterialTheme.typography.labelLarge, color = Color(0xFF2D6A4F), fontWeight = FontWeight.Bold)
+                    Text(goal.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color(0xFF173B2D))
+                }
+                IconButton(onClick = { showEditGoal = true }) { Icon(Icons.Default.Edit, "Edit goal") }
+            }
             Text("${daysRemaining(LocalDate.now(), end)} days left", style = MaterialTheme.typography.bodyLarge)
             Spacer(Modifier.height(22.dp))
             Text("Your year, one day at a time", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
-            Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                dates.forEach { date ->
-                    val summary = summarize(date, tasks)
-                    DayCell(summary.intensity, date == selectedDate) { selectedDate = date }
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val gridSpec = calculateGridSpec(calendarDates.size, maxWidth.value)
+                val cellSize = gridSpec.cellSizeDp.dp
+                val cellGap = gridSpec.gapDp.dp
+                val gridWidth = cellSize * gridSpec.columns + cellGap * (gridSpec.columns - 1)
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Column(Modifier.width(gridWidth), verticalArrangement = Arrangement.spacedBy(cellGap)) {
+                        calendarDates.chunked(gridSpec.columns).forEach { rowDates ->
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(cellGap, Alignment.Start),
+                            ) {
+                                rowDates.forEach { date ->
+                                    val summary = summarize(date, tasks)
+                                    DayCell(summary.intensity, date == selectedDate, cellSize) {
+                                        selectedDate = date
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -146,11 +177,12 @@ private fun Dashboard(goal: Goal, tasks: List<Task>, viewModel: CalendarViewMode
         }
     }
     if (showAddTask) AddTaskDialog(selectedDate, { title -> viewModel.addTask(title, selectedDate); showAddTask = false }, { showAddTask = false })
+    if (showEditGoal) EditGoalDialog(goal, viewModel, { showEditGoal = false })
 }
 
 @Composable
-private fun DayCell(intensity: Intensity, selected: Boolean, onClick: () -> Unit) {
-    Box(Modifier.size(30.dp).background(intensity.color(), RoundedCornerShape(5.dp)).clickable(onClick = onClick).then(if (selected) Modifier.padding(2.dp) else Modifier)) {
+private fun DayCell(intensity: Intensity, selected: Boolean, size: androidx.compose.ui.unit.Dp, onClick: () -> Unit) {
+    Box(Modifier.size(size).background(intensity.color(), RoundedCornerShape(4.dp)).clickable(onClick = onClick).then(if (selected) Modifier.padding(2.dp) else Modifier)) {
         if (selected) Box(Modifier.fillMaxSize().background(Color.Transparent, RoundedCornerShape(3.dp)))
     }
 }
@@ -176,4 +208,36 @@ private fun TaskRow(task: Task, viewModel: CalendarViewModel) {
 private fun AddTaskDialog(date: LocalDate, onAdd: (String) -> Unit, onDismiss: () -> Unit) {
     var title by remember { mutableStateOf("") }
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Add to ${date.format(dateFormatter)}") }, text = { OutlinedTextField(title, { title = it }, label = { Text("Task") }, singleLine = true) }, confirmButton = { TextButton(enabled = title.isNotBlank(), onClick = { onAdd(title) }) { Text("Add") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
+}
+
+@Composable
+private fun EditGoalDialog(goal: Goal, viewModel: CalendarViewModel, onDismiss: () -> Unit) {
+    var title by remember(goal) { mutableStateOf(goal.title) }
+    var start by remember(goal) { mutableStateOf(goal.startDate) }
+    var end by remember(goal) { mutableStateOf(goal.endDate) }
+    var error by remember { mutableStateOf<String?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit goal") },
+        text = {
+            Column {
+                OutlinedTextField(title, { title = it }, label = { Text("Goal") }, singleLine = true)
+                OutlinedTextField(start, { start = it }, label = { Text("Start date (YYYY-MM-DD)") }, singleLine = true)
+                OutlinedTextField(end, { end = it }, label = { Text("End date (YYYY-MM-DD)") }, singleLine = true)
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = title.isNotBlank(), onClick = {
+                runCatching {
+                    val parsedStart = LocalDate.parse(start)
+                    val parsedEnd = LocalDate.parse(end)
+                    require(!parsedEnd.isBefore(parsedStart)) { "End date must be on or after start date." }
+                    viewModel.saveGoal(title, parsedStart.toString(), parsedEnd.toString())
+                    onDismiss()
+                }.onFailure { error = it.message ?: "Enter valid dates." }
+            }) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
