@@ -10,3 +10,25 @@ app/build/
 .github/skills
 .github/instructions
 skills-lock.json
+# Kotlin/Android generated state
+.kotlin/
+*.apk
+*.aab
+*.aar
+*.hprof
+
+# Signing credentials and certificates
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+
+# Environment and local secret files
+.env
+.env.*
+!.env.example
+
+# OS/editor files
+.DS_Store
+Thumbs.db

@@ -1,5 +1,7 @@
 package com.mylifecalendar.domain
 
+import android.graphics.Color as AndroidColor
+import androidx.compose.ui.graphics.Color
 import com.mylifecalendar.data.Task
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -9,6 +11,22 @@ import kotlin.math.sqrt
 
 /** The visual intensity used by the contribution grid. */
 enum class Intensity(val label: String) { NONE("No tasks"), LOW("Getting started"), MEDIUM("Making progress"), HIGH("Strong day"), FULL("All done") }
+
+fun Intensity.color() = when (this) {
+    Intensity.NONE -> Color(0xFFE2E6E1)
+    Intensity.LOW -> Color(0xFFB7D9C5)
+    Intensity.MEDIUM -> Color(0xFF72B58A)
+    Intensity.HIGH -> Color(0xFF3E8B61)
+    Intensity.FULL -> Color(0xFF145A3A)
+}
+
+fun Intensity.lockScreenColor(): Int = when (this) {
+    Intensity.NONE -> AndroidColor.parseColor("#21262D")
+    Intensity.LOW -> AndroidColor.parseColor("#0E4429")
+    Intensity.MEDIUM -> AndroidColor.parseColor("#006D32")
+    Intensity.HIGH -> AndroidColor.parseColor("#26A641")
+    Intensity.FULL -> AndroidColor.parseColor("#39D353")
+}
 
 data class DaySummary(
     val date: LocalDate,
