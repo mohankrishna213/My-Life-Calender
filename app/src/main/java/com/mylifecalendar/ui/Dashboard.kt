@@ -20,14 +20,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mylifecalendar.data.Goal
@@ -48,16 +51,16 @@ import com.mylifecalendar.domain.calculateGridSpec
 import com.mylifecalendar.domain.datesBetween
 import com.mylifecalendar.domain.daysRemaining
 import com.mylifecalendar.domain.summarize
-import com.mylifecalendar.wallpaper.WallpaperResult
 import java.time.LocalDate
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Dashboard(
     goal: Goal,
     tasks: List<Task>,
     viewModel: CalendarViewModel,
-    wallpaperResult: WallpaperResult? = null,
-    onApplyWallpaper: () -> Unit = {},
+    onOpenDrawer: () -> Unit = {},
+    onOpenLockScreen: () -> Unit = {},
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val start = LocalDate.parse(goal.startDate)
@@ -65,6 +68,7 @@ fun Dashboard(
     var selectedDate by remember(goal.startDate, goal.endDate) { mutableStateOf(LocalDate.now().coerceIn(start, end)) }
     var showAddTask by remember { mutableStateOf(false) }
     var showEditGoal by remember { mutableStateOf(false) }
+    var showWallpaperPrompt by remember { mutableStateOf(false) }
     val calendarDates = datesBetween(start, end)
     val selectedTasks = tasks.filter { it.date == selectedDate.toString() }
 
@@ -73,28 +77,32 @@ fun Dashboard(
         viewModel.refreshWallpaperIfApplied(context)
     }
 
-    Scaffold(containerColor = Color(0xFFF7F4EE), floatingActionButton = { FloatingActionButton(onClick = { showAddTask = true }, containerColor = Color(0xFF2D6A4F), contentColor = Color.White) { Icon(Icons.Default.Add, "Add task") } }) { padding ->
+    Scaffold(
+        containerColor = Color(0xFFF7F4EE),
+        topBar = {
+            TopAppBar(
+                navigationIcon = {
+                    IconButton(onClick = onOpenDrawer) { Icon(Icons.Default.Menu, contentDescription = "Open menu") }
+                },
+                title = {
+                    Column {
+                        Text("MY LIFE CALENDAR", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color(0xFF2D6A4F))
+                        Text(goal.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color(0xFF173B2D), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showEditGoal = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit goal") }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFFF7F4EE),
+                    scrolledContainerColor = Color(0xFFF7F4EE),
+                ),
+            )
+        },
+        floatingActionButton = { FloatingActionButton(onClick = { showAddTask = true }, containerColor = Color(0xFF2D6A4F), contentColor = Color.White) { Icon(Icons.Default.Add, "Add task") } },
+    ) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("MY LIFE CALENDAR", style = MaterialTheme.typography.labelLarge, color = Color(0xFF2D6A4F), fontWeight = FontWeight.Bold)
-                    Text(goal.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color(0xFF173B2D))
-                }
-                IconButton(onClick = { showEditGoal = true }) { Icon(Icons.Default.Edit, "Edit goal") }
-            }
             Text("${daysRemaining(LocalDate.now(), end)} days left", style = MaterialTheme.typography.bodyLarge)
-            Spacer(Modifier.height(10.dp))
-            Button(
-                onClick = onApplyWallpaper,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2D6A4F), contentColor = Color.White),
-            ) { Text("Set lock screen wallpaper") }
-            when (wallpaperResult) {
-                is WallpaperResult.Success -> Text("Lock screen updated", color = Color(0xFF2D6A4F), style = MaterialTheme.typography.labelMedium)
-                WallpaperResult.NoGoal -> Text("Set a goal first", color = Color(0xFF5B665F), style = MaterialTheme.typography.labelMedium)
-                is WallpaperResult.Failure -> Text((wallpaperResult as WallpaperResult.Failure).message, color = Color.Red, style = MaterialTheme.typography.labelMedium)
-                null -> {}
-            }
             Spacer(Modifier.height(22.dp))
             Text("Your year, one day at a time", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
@@ -132,7 +140,22 @@ fun Dashboard(
         }
     }
     if (showAddTask) AddTaskDialog(selectedDate, { title -> viewModel.addTask(title, selectedDate); showAddTask = false }, { showAddTask = false })
-    if (showEditGoal) EditGoalDialog(goal, viewModel, { showEditGoal = false })
+    if (showEditGoal) EditGoalDialog(
+        goal,
+        viewModel,
+        onDismiss = { showEditGoal = false },
+        onGoalSaved = {
+            showEditGoal = false
+            showWallpaperPrompt = true
+        },
+    )
+    if (showWallpaperPrompt) WallpaperPromptDialog(
+        onConfirm = {
+            showWallpaperPrompt = false
+            onOpenLockScreen()
+        },
+        onDismiss = { showWallpaperPrompt = false },
+    )
 }
 
 @Composable

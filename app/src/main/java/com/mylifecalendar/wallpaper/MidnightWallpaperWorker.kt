@@ -32,6 +32,7 @@ class MidnightWallpaperWorker(
         return when (coordinator.apply(applicationContext)) {
             is WallpaperResult.Success -> {
                 WallpaperPreferences.setLastRefreshDate(applicationContext, LocalDate.now())
+                WallpaperPreferences.setLastAppliedNow(applicationContext)
                 schedule(applicationContext)
                 Result.success()
             }
@@ -66,6 +67,7 @@ object WallpaperPreferences {
     private const val PREFS = "wallpaper"
     private const val KEY_APPLIED = "applied"
     private const val KEY_LAST_REFRESH = "last_refresh"
+    private const val KEY_LAST_APPLIED_AT = "last_applied_at"
 
     fun isWallpaperApplied(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_APPLIED, false)
@@ -78,5 +80,16 @@ object WallpaperPreferences {
     fun setLastRefreshDate(context: Context, date: LocalDate) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putString(KEY_LAST_REFRESH, date.toString()).apply()
+    }
+
+    fun setLastAppliedNow(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putLong(KEY_LAST_APPLIED_AT, System.currentTimeMillis()).apply()
+    }
+
+    fun getLastAppliedAt(context: Context): Long? {
+        val value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getLong(KEY_LAST_APPLIED_AT, -1L)
+        return if (value == -1L) null else value
     }
 }

@@ -51,6 +51,18 @@ class LockScreenWallpaperCoordinator(
         )
     }
 
+    suspend fun remove(context: Context): WallpaperResult = withContext(dispatcher) {
+        runCatching {
+            val manager = WallpaperManager.getInstance(context)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                manager.clear(WallpaperManager.FLAG_LOCK)
+            }
+        }.fold(
+            onSuccess = { WallpaperResult.Success },
+            onFailure = { WallpaperResult.Failure(it.message ?: "Could not remove") },
+        )
+    }
+
     private fun displaySize(context: Context): Point {
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val point = Point()

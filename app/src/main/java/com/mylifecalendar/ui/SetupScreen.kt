@@ -33,7 +33,7 @@ import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SetupScreen(viewModel: CalendarViewModel) {
+fun SetupScreen(viewModel: CalendarViewModel, onGoalCreated: () -> Unit = {}) {
     var title by remember { mutableStateOf("My next chapter") }
     var start by remember { mutableStateOf(LocalDate.now()) }
     var end by remember { mutableStateOf(LocalDate.now().plusDays(365)) }
@@ -46,7 +46,7 @@ fun SetupScreen(viewModel: CalendarViewModel) {
         DatePickerField("Start date", start) { start = it }
         DatePickerField("End date", end) { end = it }
         Spacer(Modifier.height(20.dp))
-        Button(onClick = { if (!end.isBefore(start)) viewModel.saveGoal(title, start.toString(), end.toString()) }, modifier = Modifier.fillMaxWidth()) { Text("Begin the count") }
+        Button(onClick = { if (!end.isBefore(start)) { viewModel.saveGoal(title, start.toString(), end.toString()); onGoalCreated() } }, modifier = Modifier.fillMaxWidth()) { Text("Begin the count") }
     }
 }
 
@@ -61,6 +61,12 @@ fun DatePickerField(label: String, date: LocalDate, onDateSelected: (LocalDate) 
             readOnly = true,
             label = { Text(label) },
             modifier = Modifier.fillMaxWidth(),
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF2D6A4F),
+                unfocusedBorderColor = Color(0xFFCBD3CB),
+                cursorColor = Color(0xFF2D6A4F),
+                focusedLabelColor = Color(0xFF2D6A4F),
+            ),
         )
         Box(Modifier.fillMaxSize().clickable { showPicker = true })
     }
