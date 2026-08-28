@@ -1,10 +1,11 @@
-package com.mylifecalendar
+package com.focus
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -40,8 +41,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -49,12 +53,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import com.mylifecalendar.data.CalendarRepository
-import com.mylifecalendar.data.Goal
-import com.mylifecalendar.wallpaper.LockScreenWallpaperCoordinator
-import com.mylifecalendar.wallpaper.MidnightWallpaperWorker
-import com.mylifecalendar.wallpaper.WallpaperPreferences
-import com.mylifecalendar.wallpaper.WallpaperResult
+import com.focus.data.CalendarRepository
+import com.focus.data.Goal
+import com.focus.wallpaper.LockScreenWallpaperCoordinator
+import com.focus.wallpaper.MidnightWallpaperWorker
+import com.focus.wallpaper.WallpaperPreferences
+import com.focus.wallpaper.WallpaperResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -148,14 +152,29 @@ fun CalendarApp(viewModel: CalendarViewModel) {
     var showGoalCreatedPrompt by rememberSaveable { mutableStateOf(false) }
     val drawerWidth = LocalConfiguration.current.screenWidthDp.dp * 0.7f
 
+    // Tapping white space or static text must drop input focus (and the soft
+    // keyboard) instead of leaving the caret blinking in a text box.
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     MaterialTheme {
-        Surface(Modifier.fillMaxSize(), color = Color(0xFFF7F4EE)) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                    }
+                },
+            color = Color(0xFFF7F4EE),
+        ) {
             if (goal == null) {
                 SetupScreen(viewModel, onGoalCreated = { showGoalCreatedPrompt = true })
             } else {
                 ModalNavigationDrawer(
                     drawerState = drawerState,
-                    gesturesEnabled = currentScreen == AppScreen.Dashboard,
+                    gesturesEnabled = true,
                     drawerContent = {
                         AppDrawerSheet(
                             goalTitle = goal!!.title,
@@ -179,6 +198,7 @@ fun CalendarApp(viewModel: CalendarViewModel) {
                         AppScreen.LockScreen -> WallpaperScreen(
                             viewModel,
                             onBack = { currentScreen = AppScreen.Dashboard },
+                            onOpenDrawer = { scope.launch { drawerState.open() } },
                         )
                     }
                     if (showGoalCreatedPrompt) {
@@ -212,7 +232,7 @@ private fun AppDrawerSheet(goalTitle: String, currentScreen: AppScreen, drawerWi
                 Icon(Icons.Filled.CalendarMonth, contentDescription = null, tint = Color.White)
             }
             Spacer(Modifier.height(10.dp))
-            Text("My Life Calendar", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF173B2D))
+            Text("Focus", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF173B2D))
             Text(goalTitle, style = MaterialTheme.typography.bodySmall, color = Color(0xFF5B665F), maxLines = 1)
             Spacer(Modifier.height(14.dp))
             HorizontalDivider(color = Color(0xFFE0DDD6))

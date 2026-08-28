@@ -1,12 +1,12 @@
-package com.mylifecalendar.wallpaper
+package com.focus.wallpaper
 
 import android.app.WallpaperManager
 import android.content.Context
 import android.graphics.Point
 import android.os.Build
 import android.view.WindowManager
-import com.mylifecalendar.data.CalendarRepository
-import com.mylifecalendar.domain.WallpaperSnapshotFactory
+import com.focus.data.CalendarRepository
+import com.focus.domain.WallpaperSnapshotFactory
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers

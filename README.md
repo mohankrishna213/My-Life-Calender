@@ -1,4 +1,4 @@
-# My Life Calendar
+# Focus
 
 A local-first Android countdown calendar. Each day in an inclusive goal range is shown as a contribution-style cell whose intensity reflects completed tasks.
 

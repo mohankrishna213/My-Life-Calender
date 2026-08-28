@@ -1,7 +1,8 @@
-package com.mylifecalendar
+package com.focus
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -43,15 +44,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.mylifecalendar.data.Goal
-import com.mylifecalendar.data.Task
-import com.mylifecalendar.domain.Intensity
-import com.mylifecalendar.domain.color
-import com.mylifecalendar.domain.calculateGridSpec
-import com.mylifecalendar.domain.datesBetween
-import com.mylifecalendar.domain.daysRemaining
-import com.mylifecalendar.domain.summarize
+import com.focus.data.Goal
+import com.focus.data.Task
+import com.focus.domain.Intensity
+import com.focus.domain.calculateGridSpec
+import com.focus.domain.color
+import com.focus.domain.datesBetween
+import com.focus.domain.daysRemaining
+import com.focus.domain.summarizeByDate
 import java.time.LocalDate
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,17 +65,26 @@ fun Dashboard(
     onOpenLockScreen: () -> Unit = {},
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val start = LocalDate.parse(goal.startDate)
-    val end = LocalDate.parse(goal.endDate)
-    var selectedDate by remember(goal.startDate, goal.endDate) { mutableStateOf(LocalDate.now().coerceIn(start, end)) }
+    val startEnd = remember(goal) { LocalDate.parse(goal.startDate) to LocalDate.parse(goal.endDate) }
+    val start = startEnd.first
+    val end = startEnd.second
+    val today = LocalDate.now()
+    var selectedDate by remember(start, end) { mutableStateOf(today.coerceIn(start, end)) }
     var showAddTask by remember { mutableStateOf(false) }
     var showEditGoal by remember { mutableStateOf(false) }
     var showWallpaperPrompt by remember { mutableStateOf(false) }
-    val calendarDates = datesBetween(start, end)
-    val selectedTasks = tasks.filter { it.date == selectedDate.toString() }
+
+    // Memoize everything the calendar grid needs so scrolling and unrelated
+    // recompositions never rebuild the grid or rescan the task list per cell.
+    val calendarDates = remember(start, end) { datesBetween(start, end) }
+    val intensityByDate = remember(calendarDates, tasks) { summarizeByDate(calendarDates, tasks) }
+    val selectedTasks = remember(selectedDate, tasks) { tasks.filter { it.date == selectedDate.toString() } }
 
     // Keep the applied lock-screen wallpaper in sync after any goal/task change.
+    // Debounced so bursts of edits coalesce instead of rendering a full-size
+    // wallpaper bitmap on every single task toggle.
     LaunchedEffect(goal, tasks) {
+        delay(500)
         viewModel.refreshWallpaperIfApplied(context)
     }
 
@@ -86,7 +97,7 @@ fun Dashboard(
                 },
                 title = {
                     Column {
-                        Text("MY LIFE CALENDAR", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color(0xFF2D6A4F))
+                        Text("FOCUS", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color(0xFF2D6A4F))
                         Text(goal.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color(0xFF173B2D), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 },
@@ -102,25 +113,21 @@ fun Dashboard(
         floatingActionButton = { FloatingActionButton(onClick = { showAddTask = true }, containerColor = Color(0xFF2D6A4F), contentColor = Color.White) { Icon(Icons.Default.Add, "Add task") } },
     ) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Text("${daysRemaining(LocalDate.now(), end)} days left", style = MaterialTheme.typography.bodyLarge)
+            Text("${daysRemaining(today, end)} days left", style = MaterialTheme.typography.bodyLarge)
             Spacer(Modifier.height(22.dp))
             Text("Your year, one day at a time", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val gridSpec = calculateGridSpec(calendarDates.size, maxWidth.value)
-                val cellSize = gridSpec.cellSizeDp.dp
-                val cellGap = gridSpec.gapDp.dp
-                val gridWidth = cellSize * gridSpec.columns + cellGap * (gridSpec.columns - 1)
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Column(Modifier.width(gridWidth), verticalArrangement = Arrangement.spacedBy(cellGap)) {
-                        calendarDates.chunked(gridSpec.columns).forEach { rowDates ->
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(cellGap, Alignment.Start)) {
-                                rowDates.forEach { date ->
-                                    DayCell(summarize(date, tasks).intensity, date == selectedDate, cellSize) { selectedDate = date }
-                                }
-                            }
-                        }
-                    }
+                    CalendarGrid(
+                        calendarDates = calendarDates,
+                        cellsPerRow = gridSpec.columns,
+                        cellSize = gridSpec.cellSizeDp.dp,
+                        cellGap = gridSpec.gapDp.dp,
+                        intensityByDate = intensityByDate,
+                        onDateClick = { selectedDate = it },
+                    )
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -158,9 +165,44 @@ fun Dashboard(
     )
 }
 
+/**
+ * The contribution grid, isolated in its own composable so it only recomposes
+ * when its inputs actually change. Cell values come from the precomputed
+ * [intensityByDate] map instead of re-scanning tasks for every cell.
+ */
 @Composable
-fun DayCell(intensity: Intensity, selected: Boolean, size: Dp, onClick: () -> Unit) {
-    Box(Modifier.size(size).background(intensity.color(), RoundedCornerShape(4.dp)).clickable(onClick = onClick).then(if (selected) Modifier.padding(2.dp) else Modifier)) {
-        if (selected) Box(Modifier.fillMaxSize().background(Color.Transparent, RoundedCornerShape(3.dp)))
+private fun CalendarGrid(
+    calendarDates: List<LocalDate>,
+    cellsPerRow: Int,
+    cellSize: Dp,
+    cellGap: Dp,
+    intensityByDate: Map<LocalDate, Intensity>,
+    onDateClick: (LocalDate) -> Unit,
+) {
+    Column(
+        Modifier.width(cellSize * cellsPerRow + cellGap * (cellsPerRow - 1)),
+        verticalArrangement = Arrangement.spacedBy(cellGap),
+    ) {
+        calendarDates.chunked(cellsPerRow).forEach { rowDates ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(cellGap, Alignment.Start)) {
+                rowDates.forEach { date ->
+                    DayCell(intensityByDate[date] ?: Intensity.NONE, cellSize) { onDateClick(date) }
+                }
+            }
+        }
     }
+}
+
+@Composable
+fun DayCell(intensity: Intensity, size: Dp, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(size)
+            .background(intensity.color(), RoundedCornerShape(4.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
+    )
 }

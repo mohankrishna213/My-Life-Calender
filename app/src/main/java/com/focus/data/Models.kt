@@ -1,4 +1,4 @@
-package com.mylifecalendar.data
+package com.focus.data
 
 import kotlinx.serialization.Serializable
 

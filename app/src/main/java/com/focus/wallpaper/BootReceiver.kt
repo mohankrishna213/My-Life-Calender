@@ -1,4 +1,4 @@
-package com.mylifecalendar.wallpaper
+package com.focus.wallpaper
 
 import android.content.BroadcastReceiver
 import android.content.Context

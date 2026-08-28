@@ -1,4 +1,4 @@
-package com.mylifecalendar
+package com.focus
 
 import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
@@ -22,7 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -59,12 +59,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mylifecalendar.data.Goal
-import com.mylifecalendar.data.Task
-import com.mylifecalendar.domain.WallpaperSnapshotFactory
-import com.mylifecalendar.wallpaper.LockScreenWallpaperRenderer
-import com.mylifecalendar.wallpaper.WallpaperPreferences
-import com.mylifecalendar.wallpaper.WallpaperResult
+import com.focus.data.Goal
+import com.focus.data.Task
+import com.focus.domain.WallpaperSnapshotFactory
+import com.focus.wallpaper.LockScreenWallpaperRenderer
+import com.focus.wallpaper.WallpaperPreferences
+import com.focus.wallpaper.WallpaperResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -74,30 +74,35 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WallpaperScreen(viewModel: CalendarViewModel, onBack: () -> Unit) {
+fun WallpaperScreen(viewModel: CalendarViewModel, onBack: () -> Unit, onOpenDrawer: () -> Unit = {}) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val goalState = viewModel.goal.collectAsStateWithLifecycle()
     val tasks = viewModel.tasks.collectAsStateWithLifecycle().value
     val goal = goalState.value ?: return
-    val event by viewModel.wallpaperEvent.collectAsStateWithLifecycle()
 
     var applied by remember { mutableStateOf(WallpaperPreferences.isWallpaperApplied(context)) }
     var lastAppliedAt by remember { mutableStateOf(WallpaperPreferences.getLastAppliedAt(context)) }
 
     BackHandler(onBack = onBack)
 
-    LaunchedEffect(event?.id) {
-        val result = event?.result ?: return@LaunchedEffect
-        applied = WallpaperPreferences.isWallpaperApplied(context)
-        lastAppliedAt = WallpaperPreferences.getLastAppliedAt(context)
-        val message = when (result) {
-            WallpaperResult.Success -> "Lock screen updated ✓"
-            WallpaperResult.NoGoal -> "Set a goal first"
-            is WallpaperResult.Failure -> result.message
+    // Show the result toast exactly once per wallpaper event. The event is
+    // consumed the moment it is collected, so leaving and returning to this
+    // page never replays it. The collector (not a keyed-on-event effect) avoids
+    // the toast being cancelled when the event is consumed mid-show.
+    LaunchedEffect(Unit) {
+        viewModel.wallpaperEvent.collect { event ->
+            val result = event?.result ?: return@collect
+            viewModel.consumeWallpaperEvent()
+            applied = WallpaperPreferences.isWallpaperApplied(context)
+            lastAppliedAt = WallpaperPreferences.getLastAppliedAt(context)
+            val message = when (result) {
+                WallpaperResult.Success -> "Lock screen updated ✓"
+                WallpaperResult.NoGoal -> "Set a goal first"
+                is WallpaperResult.Failure -> result.message
+            }
+            snackbarHostState.showSnackbar(message)
         }
-        snackbarHostState.showSnackbar(message)
-        viewModel.consumeWallpaperEvent()
     }
 
     Scaffold(
@@ -106,10 +111,10 @@ fun WallpaperScreen(viewModel: CalendarViewModel, onBack: () -> Unit) {
             SnackbarHost(snackbarHostState) { data ->
                 Snackbar(
                     snackbarData = data,
-                    containerColor = Color(0xFF173B2D),
-                    contentColor = Color.White,
-                    actionColor = Color(0xFF74C69D),
-                    dismissActionContentColor = Color(0xFF74C69D),
+                    containerColor = Color(0xFFE8F2EC),
+                    contentColor = Color(0xFF173B2D),
+                    actionColor = Color(0xFF2D6A4F),
+                    dismissActionContentColor = Color(0xFF2D6A4F),
                     shape = RoundedCornerShape(12.dp),
                 )
             }
@@ -117,9 +122,14 @@ fun WallpaperScreen(viewModel: CalendarViewModel, onBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onOpenDrawer) { Icon(Icons.Default.Menu, contentDescription = "Open menu") }
                 },
-                title = { Text("Lock Screen", fontWeight = FontWeight.Bold, color = Color(0xFF173B2D)) },
+                title = {
+                    Column {
+                        Text("FOCUS", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color(0xFF2D6A4F))
+                        Text("Lock Screen", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color(0xFF173B2D))
+                    }
+                },
                 actions = {
                     StatusChip(applied)
                     Spacer(Modifier.width(12.dp))

@@ -1,4 +1,4 @@
-package com.mylifecalendar
+package com.focus
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -26,10 +27,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.PlatformImeOptions
 import androidx.compose.ui.unit.dp
-import java.time.Instant
+import com.focus.domain.localDateToPickerMillis
+import com.focus.domain.pickerMillisToLocalDate
 import java.time.LocalDate
-import java.time.ZoneId
+
+/**
+ * Suppresses the keyboard's suggestion strip ("bubble") that Gboard shows
+ * below the focused input box. Unknown/other keyboards simply ignore it.
+ */
+internal val noSuggestionsKeyboardOptions = KeyboardOptions(
+    platformImeOptions = PlatformImeOptions(
+        privateImeOptions = "com.google.android.inputmethod.latin.noSuggestion",
+    ),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,11 +50,11 @@ fun SetupScreen(viewModel: CalendarViewModel, onGoalCreated: () -> Unit = {}) {
     var start by remember { mutableStateOf(LocalDate.now()) }
     var end by remember { mutableStateOf(LocalDate.now().plusDays(365)) }
     Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center) {
-        Text("My Life Calendar", style = androidx.compose.material3.MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Color(0xFF173B2D))
+        Text("Focus", style = androidx.compose.material3.MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Color(0xFF173B2D))
         Spacer(Modifier.height(12.dp))
         Text("Turn the days ahead into something you can see.", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
         Spacer(Modifier.height(28.dp))
-        OutlinedTextField(title, { title = it }, label = { Text("Goal") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(title, { title = it }, label = { Text("Goal") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = noSuggestionsKeyboardOptions)
         DatePickerField("Start date", start) { start = it }
         DatePickerField("End date", end) { end = it }
         Spacer(Modifier.height(20.dp))
@@ -72,14 +84,17 @@ fun DatePickerField(label: String, date: LocalDate, onDateSelected: (LocalDate) 
     }
     if (showPicker) {
         val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+            // Material3's picker stores dates as UTC-midnight millis. Using UTC here
+            // (instead of the device zone) keeps the shown and saved dates on the
+            // exact local date the user picked — no off-by-one.
+            initialSelectedDateMillis = localDateToPickerMillis(date),
         )
         DatePickerDialog(
             onDismissRequest = { showPicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let {
-                        onDateSelected(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate())
+                        onDateSelected(pickerMillisToLocalDate(it))
                     }
                     showPicker = false
                 }) { Text("OK") }

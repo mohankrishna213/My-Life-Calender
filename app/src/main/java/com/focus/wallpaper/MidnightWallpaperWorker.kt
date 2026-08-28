@@ -1,4 +1,4 @@
-package com.mylifecalendar.wallpaper
+package com.focus.wallpaper
 
 import android.content.Context
 import androidx.work.CoroutineWorker
@@ -6,7 +6,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.mylifecalendar.data.CalendarRepository
+import com.focus.data.CalendarRepository
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime

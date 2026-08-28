@@ -1,5 +1,6 @@
-package com.mylifecalendar
+package com.focus
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -14,8 +15,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
-import com.mylifecalendar.data.Goal
+import com.focus.data.Goal
 import java.time.LocalDate
 
 private val AppGreen = Color(0xFF2D6A4F)
@@ -46,6 +50,7 @@ fun AddTaskDialog(date: LocalDate, onAdd: (String) -> Unit, onDismiss: () -> Uni
                 { title = it },
                 label = { Text("Task") },
                 singleLine = true,
+                keyboardOptions = noSuggestionsKeyboardOptions,
                 colors = appTextFieldColors(),
             )
         },
@@ -67,6 +72,8 @@ fun EditGoalDialog(goal: Goal, viewModel: CalendarViewModel, onDismiss: () -> Un
     var start by remember(goal) { mutableStateOf(LocalDate.parse(goal.startDate)) }
     var end by remember(goal) { mutableStateOf(LocalDate.parse(goal.endDate)) }
     var error by remember { mutableStateOf<String?>(null) }
+    // Tapping the dialog's non-interactive area drops text-field focus.
+    val focusManager = LocalFocusManager.current
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = AppBackground,
@@ -74,8 +81,8 @@ fun EditGoalDialog(goal: Goal, viewModel: CalendarViewModel, onDismiss: () -> Un
         textContentColor = AppInk,
         title = { Text("Edit goal") },
         text = {
-            Column {
-                OutlinedTextField(title, { title = it }, label = { Text("Goal") }, singleLine = true, colors = appTextFieldColors())
+            Column(Modifier.pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } }) {
+                OutlinedTextField(title, { title = it }, label = { Text("Goal") }, singleLine = true, keyboardOptions = noSuggestionsKeyboardOptions, colors = appTextFieldColors())
                 DatePickerField("Start date", start) { start = it }
                 DatePickerField("End date", end) { end = it }
                 error?.let { Text(it, color = Color.Red) }
@@ -106,8 +113,8 @@ fun WallpaperPromptDialog(
         titleContentColor = AppInk,
         textContentColor = AppMuted,
         title = { Text(title) },
-        text = { Text("Your lock screen wallpaper will update automatically. Want to preview it first?") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Open Lock Screen", color = AppGreen) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Later", color = AppMuted) } },
+        text = { Text("Your lock screen wallpaper updates to match your goal. Preview it now, or it will update automatically on its own.") },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Preview it", color = AppGreen) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Not now", color = AppMuted) } },
     )
 }

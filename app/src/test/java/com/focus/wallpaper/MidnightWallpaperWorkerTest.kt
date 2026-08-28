@@ -1,4 +1,4 @@
-package com.mylifecalendar.wallpaper
+package com.focus.wallpaper
 
 import java.time.Duration
 import java.time.LocalDateTime

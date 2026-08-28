@@ -1,7 +1,7 @@
-package com.mylifecalendar.domain
+package com.focus.domain
 
-import com.mylifecalendar.data.Goal
-import com.mylifecalendar.data.Task
+import com.focus.data.Goal
+import com.focus.data.Task
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

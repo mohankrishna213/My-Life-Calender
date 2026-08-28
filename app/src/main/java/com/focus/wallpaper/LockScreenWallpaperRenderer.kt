@@ -1,11 +1,11 @@
-package com.mylifecalendar.wallpaper
+package com.focus.wallpaper
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
-import com.mylifecalendar.domain.WallpaperSnapshot
+import com.focus.domain.WallpaperSnapshot
 import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
 import kotlin.math.max
@@ -159,9 +159,9 @@ object LockScreenWallpaperRenderer {
         paint.color = COLOR_BRAND
         paint.textSize = layout.brandTextSize
         paint.isFakeBoldText = true
-        paint.letterSpacing = 0.12f
+        paint.letterSpacing = 0.25f
         y += layout.brandTextSize * 1.2f
-        canvas.drawText("MY LIFE CALENDAR", leftMargin, y, paint)
+        canvas.drawText("FOCUS", leftMargin, y, paint)
         paint.letterSpacing = 0f
         paint.isFakeBoldText = false
 

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MyLifeCalendar"
+rootProject.name = "Focus"
 include(":app")

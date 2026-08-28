@@ -1,13 +1,28 @@
-package com.mylifecalendar.domain
+package com.focus.domain
 
 import android.graphics.Color as AndroidColor
 import androidx.compose.ui.graphics.Color
-import com.mylifecalendar.data.Task
+import com.focus.data.Task
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.sqrt
+
+/**
+ * Converts a local date to the epoch-millis the Material3 DatePicker expects.
+ * The picker treats millis as the *UTC* midnight of the chosen date, so the
+ * conversion must stay on UTC. Using the device zone here drifts the date by
+ * one day for any timezone with a non-zero UTC offset.
+ */
+fun localDateToPickerMillis(date: LocalDate): Long =
+    date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+/** Converts the picker's UTC-midnight millis back to the intended local date. */
+fun pickerMillisToLocalDate(millis: Long): LocalDate =
+    Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
 
 /** The visual intensity used by the contribution grid. */
 enum class Intensity(val label: String) { NONE("No tasks"), LOW("Getting started"), MEDIUM("Making progress"), HIGH("Strong day"), FULL("All done") }
@@ -75,6 +90,28 @@ fun summarize(date: LocalDate, tasks: List<Task>): DaySummary {
         else -> Intensity.LOW
     }
     return DaySummary(date, total, completed, intensity)
+}
+
+/**
+ * Same intensity rules as [summarize], but computed for a whole range in one
+ * pass so the calendar grid can look up each cell instead of re-filtering the
+ * task list once per day (a full year of cells would otherwise scan the task
+ * list hundreds of times per recomposition).
+ */
+fun summarizeByDate(calendarDates: List<LocalDate>, tasks: List<Task>): Map<LocalDate, Intensity> {
+    val byDate = tasks.groupBy { it.date }
+    return calendarDates.associateWith { date ->
+        val dayTasks = byDate[date.toString()].orEmpty()
+        val total = dayTasks.size
+        val completed = dayTasks.count { it.completed }
+        when {
+            total == 0 -> Intensity.NONE
+            completed == total -> Intensity.FULL
+            completed.toDouble() / total >= 0.66 -> Intensity.HIGH
+            completed.toDouble() / total >= 0.33 -> Intensity.MEDIUM
+            else -> Intensity.LOW
+        }
+    }
 }
 
 fun datesBetween(start: LocalDate, end: LocalDate): List<LocalDate> {
