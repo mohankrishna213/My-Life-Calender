@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.outlined.Dashboard
@@ -32,6 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -158,6 +161,15 @@ fun CalendarApp(viewModel: CalendarViewModel) {
     val keyboardController = LocalSoftwareKeyboardController.current
 
     MaterialTheme {
+        // Hide the cursor-handle knob ("bubble") on every text field in the
+        // app. The handle colour is set to transparent; the selection-
+        // highlight colour is kept so the user can still see selected text.
+        CompositionLocalProvider(
+            LocalTextSelectionColors provides TextSelectionColors(
+                handleColor = Color.Transparent,
+                backgroundColor = Color(0xFF2D6A4F).copy(alpha = 0.4f),
+            ),
+        ) {
         Surface(
             modifier = Modifier
                 .fillMaxSize()
@@ -213,6 +225,7 @@ fun CalendarApp(viewModel: CalendarViewModel) {
                     }
                 }
             }
+        }
         }
     }
 }
