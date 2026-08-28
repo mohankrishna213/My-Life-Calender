@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -55,6 +56,7 @@ import com.mylifecalendar.wallpaper.LockScreenWallpaperCoordinator
 import com.mylifecalendar.wallpaper.MidnightWallpaperWorker
 import com.mylifecalendar.wallpaper.WallpaperPreferences
 import com.mylifecalendar.wallpaper.WallpaperResult
+import com.mylifecalendar.ui.intervention.InterventionSettingsScreen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -136,7 +138,7 @@ class CalendarViewModel(private val repository: CalendarRepository) : ViewModel(
 
 internal val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
-enum class AppScreen { Dashboard, LockScreen }
+enum class AppScreen { Dashboard, LockScreen, Intervention }
 
 @Composable
 fun CalendarApp(viewModel: CalendarViewModel) {
@@ -178,6 +180,9 @@ fun CalendarApp(viewModel: CalendarViewModel) {
                         )
                         AppScreen.LockScreen -> WallpaperScreen(
                             viewModel,
+                            onBack = { currentScreen = AppScreen.Dashboard },
+                        )
+                        AppScreen.Intervention -> InterventionSettingsScreen(
                             onBack = { currentScreen = AppScreen.Dashboard },
                         )
                     }
@@ -234,6 +239,13 @@ private fun AppDrawerSheet(goalTitle: String, currentScreen: AppScreen, drawerWi
                 icon = { Icon(Icons.Outlined.PhoneAndroid, contentDescription = null) },
                 selected = currentScreen == AppScreen.LockScreen,
                 onClick = { onNavigate(AppScreen.LockScreen) },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+            )
+            NavigationDrawerItem(
+                label = { Text("Intervention") },
+                icon = { Icon(Icons.Outlined.VisibilityOff, contentDescription = null) },
+                selected = currentScreen == AppScreen.Intervention,
+                onClick = { onNavigate(AppScreen.Intervention) },
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
             )
             Spacer(Modifier.weight(1f))

@@ -1,0 +1,7 @@
+<resources>
+    <string name="accessibility_service_description">
+        My Life Calendar shows a brief pause before you open a distracting app,
+        so you can check in with your tasks. It does not read, store, or share
+        any screen content or personal data.
+    </string>
+</resources>
