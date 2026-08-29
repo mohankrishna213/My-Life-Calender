@@ -1,6 +1,5 @@
 package com.focus
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -120,13 +119,16 @@ fun DatePickerField(label: String, date: LocalDate, onDateSelected: (LocalDate) 
         )
         // Overlay captures taps: clear any other field's focus, then open
         // the date picker. The tap never reaches the OutlinedTextField
-        // underneath so it never gains focus itself.
+        // underneath so it never gains focus itself. detectTapGestures
+        // draws no ripple, so the field keeps a flat look when tapped.
         Box(
             Modifier
                 .fillMaxSize()
-                .clickable {
-                    focusManager.clearFocus()
-                    showPicker = true
+                .pointerInput(Unit) {
+                    detectTapGestures {
+                        focusManager.clearFocus()
+                        showPicker = true
+                    }
                 },
         )
     }
