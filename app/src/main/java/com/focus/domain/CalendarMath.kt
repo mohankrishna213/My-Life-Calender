@@ -83,7 +83,7 @@ fun summarize(date: LocalDate, tasks: List<Task>): DaySummary {
     val total = dayTasks.size
     val completed = dayTasks.count { it.completed }
     val intensity = when {
-        total == 0 -> Intensity.NONE
+        completed == 0 -> Intensity.NONE
         completed == total -> Intensity.FULL
         completed.toDouble() / total >= 0.66 -> Intensity.HIGH
         completed.toDouble() / total >= 0.33 -> Intensity.MEDIUM
@@ -102,13 +102,14 @@ fun summarizeByDate(calendarDates: List<LocalDate>, tasks: List<Task>): Map<Loca
     val byDate = tasks.groupBy { it.date }
     return calendarDates.associateWith { date ->
         val dayTasks = byDate[date.toString()].orEmpty()
-        val total = dayTasks.size
         val completed = dayTasks.count { it.completed }
         when {
-            total == 0 -> Intensity.NONE
-            completed == total -> Intensity.FULL
-            completed.toDouble() / total >= 0.66 -> Intensity.HIGH
-            completed.toDouble() / total >= 0.33 -> Intensity.MEDIUM
+            // A scheduled day with nothing done yet (e.g. future occurrences of a
+            // recurring task) must render as the empty grey cell, never green.
+            completed == 0 -> Intensity.NONE
+            completed == dayTasks.size -> Intensity.FULL
+            completed.toDouble() / dayTasks.size >= 0.66 -> Intensity.HIGH
+            completed.toDouble() / dayTasks.size >= 0.33 -> Intensity.MEDIUM
             else -> Intensity.LOW
         }
     }

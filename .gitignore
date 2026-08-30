@@ -9,6 +9,8 @@
 app/build/
 .github/skills
 .github/instructions
+.opencode/
+.omo/
 skills-lock.json
 # Kotlin/Android generated state
 .kotlin/

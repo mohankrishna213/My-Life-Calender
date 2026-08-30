@@ -20,6 +20,23 @@ class CalendarMathTest {
         assertEquals(Intensity.NONE, summarize(LocalDate.now(), emptyList()).intensity)
     }
 
+    @Test fun `scheduled day with zero completions stays empty grey`() {
+        val date = LocalDate.of(2026, 1, 1)
+        val tasks = listOf(
+            Task(1, "one", date.toString()),
+            Task(2, "two", date.toString()),
+            Task(3, "three", date.toString()),
+        )
+        assertEquals(Intensity.NONE, summarize(date, tasks).intensity)
+    }
+
+    @Test fun `future recurring occurrence with zero completions is grey in grid map`() {
+        val date = LocalDate.of(2026, 8, 30)
+        val tasks = listOf(Task(1, "daily", date.toString()), Task(2, "daily", LocalDate.of(2026, 8, 31).toString()))
+        assertEquals(Intensity.NONE, summarizeByDate(datesBetween(date, date.plusDays(1)), tasks)[date])
+        assertEquals(Intensity.NONE, summarizeByDate(datesBetween(date, date.plusDays(1)), tasks)[date.plusDays(1)])
+    }
+
     @Test fun `days remaining includes today`() {
         assertEquals(30, daysRemaining(LocalDate.of(2026, 8, 23), LocalDate.of(2026, 9, 21)))
     }

@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.focus.data.Goal
+import com.focus.data.Recurrence
 import com.focus.data.Task
 import com.focus.domain.Intensity
 import com.focus.domain.calculateGridSpec
@@ -71,6 +72,8 @@ fun Dashboard(
     val today = LocalDate.now()
     var selectedDate by remember(start, end) { mutableStateOf(today.coerceIn(start, end)) }
     var showAddTask by remember { mutableStateOf(false) }
+    var editingTask by remember { mutableStateOf<Task?>(null) }
+    var pendingRecurringEdit by remember { mutableStateOf<Pair<Task, TaskDraft>?>(null) }
     var showEditGoal by remember { mutableStateOf(false) }
     var showWallpaperPrompt by remember { mutableStateOf(false) }
 
@@ -143,10 +146,39 @@ fun Dashboard(
             Text("${selectedTasks.count { it.completed }} of ${selectedTasks.size} tasks complete", color = Color(0xFF5B665F))
             Spacer(Modifier.height(10.dp))
             if (selectedTasks.isEmpty()) Text("A clear day. Add one small thing to begin.", color = Color(0xFF5B665F))
-            selectedTasks.forEach { task -> TaskRow(task, viewModel) }
+            selectedTasks.forEach { task -> TaskRow(task, viewModel, onEdit = { editingTask = it }) }
         }
     }
-    if (showAddTask) AddTaskDialog(selectedDate, { title -> viewModel.addTask(title, selectedDate); showAddTask = false }, { showAddTask = false })
+    val dialogTask = editingTask
+    if (showAddTask || dialogTask != null) TaskDialog(
+        date = dialogTask?.let { runCatching { LocalDate.parse(it.date) }.getOrNull() } ?: selectedDate,
+        goalEnd = end,
+        editing = dialogTask,
+        onConfirm = { draft ->
+            val target = dialogTask
+            when {
+                target == null -> viewModel.addTaskFromDraft(selectedDate, draft)
+                target.recurrence == Recurrence.NONE -> viewModel.updateTaskFromDraft(target, draft)
+                else -> pendingRecurringEdit = target to draft
+            }
+            showAddTask = false
+            editingTask = null
+        },
+        onDismiss = {
+            showAddTask = false
+            editingTask = null
+        },
+    )
+    val recurringEdit = pendingRecurringEdit
+    if (recurringEdit != null) RecurringChangeDialog(
+        taskTitle = recurringEdit.first.title,
+        action = "Save",
+        onConfirm = { scope ->
+            viewModel.updateTaskFromDraft(recurringEdit.first, recurringEdit.second, scope)
+            pendingRecurringEdit = null
+        },
+        onDismiss = { pendingRecurringEdit = null },
+    )
     if (showEditGoal) EditGoalDialog(
         goal,
         viewModel,

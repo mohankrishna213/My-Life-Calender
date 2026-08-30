@@ -58,6 +58,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.focus.data.CalendarRepository
 import com.focus.data.Goal
+import com.focus.data.Recurrence
+import com.focus.data.Subtask
+import com.focus.data.Task
+import com.focus.domain.expandTask
+import com.focus.domain.isSameSeriesAs
 import com.focus.wallpaper.LockScreenWallpaperCoordinator
 import com.focus.wallpaper.MidnightWallpaperWorker
 import com.focus.wallpaper.WallpaperPreferences
@@ -131,9 +136,61 @@ class CalendarViewModel(private val repository: CalendarRepository) : ViewModel(
     fun consumeWallpaperEvent() { _wallpaperEvent.value = null }
 
     fun saveGoal(title: String, start: String, end: String) = repository.saveGoal(Goal(title.trim(), start, end))
-    fun addTask(title: String, date: LocalDate) = repository.addTask(title.trim(), date.toString())
+
+    fun addTaskFromDraft(date: LocalDate, draft: TaskDraft) {
+        val subtasks = draft.subtasks.mapIndexed { index, subtaskDraft ->
+            Subtask(System.currentTimeMillis() + index, subtaskDraft.title)
+        }
+        repository.addTasks(expandTask(draft.title, date, draft.recurrence, draft.until, subtasks))
+    }
+
+    fun updateTaskFromDraft(
+        existing: Task,
+        draft: TaskDraft,
+        scope: RecurringChangeScope = RecurringChangeScope.THIS_TASK,
+    ) {
+        val subtasks = draft.subtasks.mapIndexed { index, subtaskDraft ->
+            val prior = existing.subtasks.firstOrNull { it.id == subtaskDraft.id }
+            Subtask(subtaskDraft.id ?: (System.currentTimeMillis() + index), subtaskDraft.title, prior?.completed ?: false)
+        }
+        val completed = if (subtasks.isEmpty()) existing.completed else subtasks.all { it.completed }
+        val updated = existing.copy(
+            title = draft.title,
+            recurrence = draft.recurrence,
+            recurrenceUntil = draft.until?.toString(),
+            completed = completed,
+            subtasks = subtasks,
+        )
+        val editDate = runCatching { LocalDate.parse(existing.date) }.getOrNull()
+        if (existing.recurrence == Recurrence.NONE || scope == RecurringChangeScope.THIS_TASK || editDate == null) {
+            repository.updateTask(updated)
+            return
+        }
+        // Segment semantics: everything from the edit date on becomes a new series
+        // (new seriesId) reshaped by the draft; earlier occurrences stay untouched.
+        val tasks = repository.tasks.value
+        val kept = tasks.filterNot { task ->
+            task.id == existing.id || (task.isSameSeriesAs(existing) && task.date > editDate.toString())
+        }
+        val idSeed = (kept.maxOfOrNull { it.id } ?: 0L) + 1
+        val newFuture = if (draft.recurrence == Recurrence.NONE || draft.until == null) {
+            emptyList()
+        } else {
+            expandTask(draft.title, editDate, draft.recurrence, draft.until, subtasks.map { it.copy(completed = false) }, idSeed = idSeed)
+                .filterNot { it.date == editDate.toString() }
+        }
+        repository.replaceTasks(kept + updated.copy(seriesId = idSeed) + newFuture)
+    }
+
     fun toggleTask(id: Long) = repository.toggleTask(id)
-    fun deleteTask(id: Long) = repository.deleteTask(id)
+    fun toggleSubtask(taskId: Long, subtaskId: Long) = repository.toggleSubtask(taskId, subtaskId)
+    fun deleteTask(task: Task, scope: RecurringChangeScope = RecurringChangeScope.THIS_TASK) {
+        if (task.recurrence == Recurrence.NONE || scope == RecurringChangeScope.THIS_TASK) {
+            repository.deleteTask(task.id)
+            return
+        }
+        repository.deleteTasksWhere { it.isSameSeriesAs(task) && it.date >= task.date }
+    }
     companion object {
         fun factory(context: android.content.Context) = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T = CalendarViewModel(CalendarRepository(context)) as T
