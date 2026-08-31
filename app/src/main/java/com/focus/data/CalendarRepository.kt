@@ -50,6 +50,16 @@ class CalendarRepository(context: Context) {
         })
     }
 
+    fun deleteSubtask(taskId: Long, subtaskId: Long) {
+        saveTasks(_tasks.value.map { task ->
+            if (task.id != taskId) task
+            else {
+                val subtasks = task.subtasks.filterNot { it.id == subtaskId }
+                task.copy(subtasks = subtasks, completed = subtasks.isNotEmpty() && subtasks.all { it.completed })
+            }
+        })
+    }
+
     fun deleteTask(id: Long) = saveTasks(_tasks.value.filterNot { it.id == id })
 
     fun deleteTasksWhere(predicate: (Task) -> Boolean) = saveTasks(_tasks.value.filterNot(predicate))

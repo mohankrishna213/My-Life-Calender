@@ -138,10 +138,7 @@ class CalendarViewModel(private val repository: CalendarRepository) : ViewModel(
     fun saveGoal(title: String, start: String, end: String) = repository.saveGoal(Goal(title.trim(), start, end))
 
     fun addTaskFromDraft(date: LocalDate, draft: TaskDraft) {
-        val subtasks = draft.subtasks.mapIndexed { index, subtaskDraft ->
-            Subtask(System.currentTimeMillis() + index, subtaskDraft.title)
-        }
-        repository.addTasks(expandTask(draft.title, date, draft.recurrence, draft.until, subtasks))
+        repository.addTasks(expandTask(draft.title, date, draft.recurrence, draft.until))
     }
 
     fun updateTaskFromDraft(
@@ -149,17 +146,14 @@ class CalendarViewModel(private val repository: CalendarRepository) : ViewModel(
         draft: TaskDraft,
         scope: RecurringChangeScope = RecurringChangeScope.THIS_TASK,
     ) {
-        val subtasks = draft.subtasks.mapIndexed { index, subtaskDraft ->
-            val prior = existing.subtasks.firstOrNull { it.id == subtaskDraft.id }
-            Subtask(subtaskDraft.id ?: (System.currentTimeMillis() + index), subtaskDraft.title, prior?.completed ?: false)
+        val completed = existing.subtasks.let { subtasks ->
+            if (subtasks.isEmpty()) existing.completed else subtasks.all { it.completed }
         }
-        val completed = if (subtasks.isEmpty()) existing.completed else subtasks.all { it.completed }
         val updated = existing.copy(
             title = draft.title,
             recurrence = draft.recurrence,
             recurrenceUntil = draft.until?.toString(),
             completed = completed,
-            subtasks = subtasks,
         )
         val editDate = runCatching { LocalDate.parse(existing.date) }.getOrNull()
         if (existing.recurrence == Recurrence.NONE || scope == RecurringChangeScope.THIS_TASK || editDate == null) {
@@ -176,7 +170,7 @@ class CalendarViewModel(private val repository: CalendarRepository) : ViewModel(
         val newFuture = if (draft.recurrence == Recurrence.NONE || draft.until == null) {
             emptyList()
         } else {
-            expandTask(draft.title, editDate, draft.recurrence, draft.until, subtasks.map { it.copy(completed = false) }, idSeed = idSeed)
+            expandTask(draft.title, editDate, draft.recurrence, draft.until, idSeed = idSeed)
                 .filterNot { it.date == editDate.toString() }
         }
         repository.replaceTasks(kept + updated.copy(seriesId = idSeed) + newFuture)
@@ -184,6 +178,16 @@ class CalendarViewModel(private val repository: CalendarRepository) : ViewModel(
 
     fun toggleTask(id: Long) = repository.toggleTask(id)
     fun toggleSubtask(taskId: Long, subtaskId: Long) = repository.toggleSubtask(taskId, subtaskId)
+    fun deleteSubtask(taskId: Long, subtaskId: Long) = repository.deleteSubtask(taskId, subtaskId)
+
+    fun addSubtask(taskId: Long, title: String) {
+        val newSubtask = Subtask(System.currentTimeMillis(), title.trim())
+        val tasks = repository.tasks.value.map { task ->
+            if (task.id != taskId) task
+            else task.copy(subtasks = task.subtasks + newSubtask)
+        }
+        repository.replaceTasks(tasks)
+    }
     fun deleteTask(task: Task, scope: RecurringChangeScope = RecurringChangeScope.THIS_TASK) {
         if (task.recurrence == Recurrence.NONE || scope == RecurringChangeScope.THIS_TASK) {
             repository.deleteTask(task.id)

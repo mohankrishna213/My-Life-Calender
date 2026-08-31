@@ -1,7 +1,6 @@
 package com.focus.domain
 
 import com.focus.data.Recurrence
-import com.focus.data.Subtask
 import com.focus.data.Task
 import java.time.LocalDate
 
@@ -14,19 +13,17 @@ import java.time.LocalDate
  * list, so expansion keeps all of them unchanged and makes toggling or
  * editing a single occurrence trivial.
  *
- * A task with subtasks copies the same subtask definitions (ids included)
- * into every occurrence; completion is tracked per occurrence.
+ * Subtasks are day-specific and are not copied across occurrences.
  */
 fun expandTask(
     title: String,
     start: LocalDate,
     recurrence: Recurrence,
     until: LocalDate?,
-    subtasks: List<Subtask> = emptyList(),
     idSeed: Long = System.currentTimeMillis(),
     maxOccurrences: Int = 730,
 ): List<Task> {
-    val base = Task(id = idSeed, title = title, date = start.toString(), seriesId = idSeed, subtasks = subtasks)
+    val base = Task(id = idSeed, title = title, date = start.toString(), seriesId = idSeed)
     if (recurrence == Recurrence.NONE || until == null || until.isBefore(start)) {
         return listOf(base.copy(seriesId = null))
     }

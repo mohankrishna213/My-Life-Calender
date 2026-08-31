@@ -22,11 +22,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -46,7 +43,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,13 +50,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.focus.data.Goal
@@ -87,13 +80,10 @@ private fun appTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedLabelColor = AppGreen,
 )
 
-data class SubtaskDraft(val key: Long, val id: Long?, val title: String)
-
 data class TaskDraft(
     val title: String,
     val recurrence: Recurrence,
     val until: LocalDate?,
-    val subtasks: List<SubtaskDraft>,
 )
 
 private data class RoutineChip(val label: String, val recurrence: Recurrence)
@@ -144,38 +134,16 @@ fun TaskDialog(
     var customUntil by remember(editing) {
         mutableStateOf(editing?.recurrenceUntil?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: date)
     }
-    var subtaskDrafts by remember(editing) {
-        mutableStateOf<List<SubtaskDraft>>(
-            editing?.subtasks?.map { SubtaskDraft(key = it.id, id = it.id, title = it.title) } ?: emptyList(),
-        )
-    }
-    var focusSubtaskKey by remember { mutableStateOf<Long?>(null) }
     var recurrenceExpanded by remember { mutableStateOf(false) }
     var showMoreRoutines by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-
-    fun nextDraftKey(): Long {
-        var candidate = System.currentTimeMillis()
-        while (subtaskDrafts.any { it.key == candidate }) candidate++
-        return candidate
-    }
 
     fun applyRoutine(label: String, routineRecurrence: Recurrence) {
         title = label
         recurrence = routineRecurrence
         useCustomUntil = false
         error = null
-    }
-
-    fun addSubtaskDraft() {
-        val key = nextDraftKey()
-        subtaskDrafts = subtaskDrafts + SubtaskDraft(key, null, "")
-        focusSubtaskKey = key
-    }
-
-    fun onSubtaskDone(index: Int) {
-        if (subtaskDrafts.getOrNull(index)?.title?.isNotBlank() == true) addSubtaskDraft()
     }
 
     val focusManager = LocalFocusManager.current
@@ -198,7 +166,7 @@ fun TaskDialog(
                     .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Column(Modifier.weight(3.5f)) {
+                    Column(Modifier.weight(3f)) {
                         Text("Task", style = MaterialTheme.typography.labelSmall, color = AppMuted, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
                         OutlinedTextField(
                             title,
@@ -207,19 +175,19 @@ fun TaskDialog(
                             singleLine = true,
                             keyboardOptions = noSuggestionsKeyboardOptions,
                             colors = appTextFieldColors(),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
                         )
                     }
-                    Column(Modifier.weight(1.5f)) {
+                    Column(Modifier.weight(1.2f)) {
                         Text("Repeat", style = MaterialTheme.typography.labelSmall, color = AppMuted, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
                         Box {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .height(56.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .border(1.dp, AppBorder, RoundedCornerShape(8.dp))
-                                    .clickable { recurrenceExpanded = true }
-                                    .padding(vertical = 14.dp, horizontal = 12.dp),
+                                    .clickable { recurrenceExpanded = true },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -228,14 +196,18 @@ fun TaskDialog(
                                     Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = AppMuted, modifier = Modifier.size(12.dp))
                                 }
                             }
-                            DropdownMenu(expanded = recurrenceExpanded, onDismissRequest = { recurrenceExpanded = false }) {
+                            DropdownMenu(
+                                expanded = recurrenceExpanded,
+                                onDismissRequest = { recurrenceExpanded = false },
+                                containerColor = AppBackground,
+                            ) {
                                 Recurrence.entries.forEach { option ->
                                     DropdownMenuItem(
                                         text = {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(option.icon, fontSize = 16.sp)
                                                 Spacer(Modifier.width(10.dp))
-                                                Text(option.label)
+                                                Text(option.label, color = AppInk)
                                             }
                                         },
                                         onClick = {
@@ -316,30 +288,6 @@ fun TaskDialog(
                     }
                 }
                 Spacer(Modifier.height(12.dp))
-                subtaskDrafts.forEachIndexed { index, draft ->
-                    Row(Modifier.fillMaxWidth().padding(start = 12.dp)) {
-                        SubtaskField(
-                            draft = draft,
-                            modifier = Modifier.weight(1f),
-                            onTitleChange = { newTitle ->
-                                subtaskDrafts = subtaskDrafts.map { if (it.key == draft.key) it.copy(title = newTitle) else it }
-                            },
-                            onRemove = { subtaskDrafts = subtaskDrafts.filterNot { it.key == draft.key } },
-                            onDone = { onSubtaskDone(index) },
-                            focusKey = focusSubtaskKey,
-                            onFocusHandled = { focusSubtaskKey = null },
-                        )
-                    }
-                    Spacer(Modifier.height(6.dp))
-                }
-                TextButton(
-                    onClick = { addSubtaskDraft() },
-                    colors = ButtonDefaults.textButtonColors(contentColor = AppGreen),
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Add Subtask", style = MaterialTheme.typography.labelLarge)
-                }
                 error?.let { Text(it, color = Color.Red) }
             }
         },
@@ -356,7 +304,7 @@ fun TaskDialog(
                     if (until != null && until.isBefore(date)) {
                         error = "Until date must be on or after the task date."
                     } else {
-                        onConfirm(TaskDraft(title.trim(), recurrence, until, subtaskDrafts.filter { it.title.isNotBlank() }))
+                        onConfirm(TaskDraft(title.trim(), recurrence, until))
                     }
                 },
             ) { Text(if (editing == null) "Add" else "Save") }
@@ -496,46 +444,6 @@ fun RecurringChangeDialog(
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = AppMuted) } },
-    )
-}
-
-@Composable
-private fun SubtaskField(
-    draft: SubtaskDraft,
-    modifier: Modifier = Modifier,
-    onTitleChange: (String) -> Unit,
-    onRemove: () -> Unit,
-    onDone: () -> Unit,
-    focusKey: Long?,
-    onFocusHandled: () -> Unit,
-) {
-    val requester = remember { FocusRequester() }
-    LaunchedEffect(focusKey) {
-        if (focusKey != null && focusKey == draft.key) {
-            requester.requestFocus()
-            onFocusHandled()
-        }
-    }
-    OutlinedTextField(
-        draft.title,
-        onTitleChange,
-        placeholder = { Text("Subtask", style = MaterialTheme.typography.bodySmall) },
-        textStyle = MaterialTheme.typography.bodySmall,
-        singleLine = true,
-        keyboardOptions = noSuggestionsKeyboardOptions.copy(imeAction = ImeAction.Done),
-        keyboardActions = KeyboardActions(onDone = { onDone() }),
-        colors = appTextFieldColors(),
-        trailingIcon = {
-            Box(Modifier.size(30.dp), contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = "Remove subtask",
-                    tint = AppMuted,
-                    modifier = Modifier.size(16.dp).clickable(onClick = onRemove),
-                )
-            }
-        },
-        modifier = modifier.focusRequester(requester),
     )
 }
 

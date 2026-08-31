@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
@@ -76,6 +77,7 @@ fun Dashboard(
     var pendingRecurringEdit by remember { mutableStateOf<Pair<Task, TaskDraft>?>(null) }
     var showEditGoal by remember { mutableStateOf(false) }
     var showWallpaperPrompt by remember { mutableStateOf(false) }
+    var expandedTaskId by remember { mutableStateOf<Long?>(null) }
 
     // Memoize everything the calendar grid needs so scrolling and unrelated
     // recompositions never rebuild the grid or rescan the task list per cell.
@@ -146,7 +148,25 @@ fun Dashboard(
             Text("${selectedTasks.count { it.completed }} of ${selectedTasks.size} tasks complete", color = Color(0xFF5B665F))
             Spacer(Modifier.height(10.dp))
             if (selectedTasks.isEmpty()) Text("A clear day. Add one small thing to begin.", color = Color(0xFF5B665F))
-            selectedTasks.forEach { task -> TaskRow(task, viewModel, onEdit = { editingTask = it }) }
+            selectedTasks.forEachIndexed { index, task ->
+                val isExpanded = expandedTaskId == task.id
+                TaskRow(
+                    task = task,
+                    viewModel = viewModel,
+                    expanded = isExpanded,
+                    onExpandToggle = { newExpanded ->
+                        expandedTaskId = if (newExpanded) task.id else null
+                    },
+                    onEdit = { editingTask = it },
+                )
+                if (isExpanded && index < selectedTasks.lastIndex) {
+                    HorizontalDivider(
+                        color = Color(0xFFD0CCC5),
+                        thickness = 0.5.dp,
+                        modifier = Modifier.padding(start = 52.dp),
+                    )
+                }
+            }
         }
     }
     val dialogTask = editingTask
