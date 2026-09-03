@@ -73,17 +73,23 @@ object WallpaperPreferences {
     private const val KEY_LAST_APPLIED_AT = "last_applied_at"
 
     private fun prefs(context: Context): SharedPreferences {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-
-        return EncryptedSharedPreferences.create(
-            context,
-            "wallpaper_secure",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-        )
+        return try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            EncryptedSharedPreferences.create(
+                context,
+                "wallpaper_secure",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            )
+        } catch (e: Exception) {
+            // Guard against OEM Keystore failures (KeyStoreException on some
+            // Samsung/Xiaomi devices): fall back to plain prefs so the app
+            // stays usable instead of crashing.
+            context.getSharedPreferences("wallpaper_fallback", Context.MODE_PRIVATE)
+        }
     }
 
     private var migrated = false

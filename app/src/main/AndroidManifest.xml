@@ -6,6 +6,7 @@
         android:name=".App"
         android:theme="@style/Theme.Focus"
         android:icon="@drawable/focus"
+        android:roundIcon="@drawable/focus"
         android:label="Focus: Goal &amp; Habit Tracker"
         android:allowBackup="false"
         android:fullBackupContent="false"
@@ -31,8 +32,7 @@
         </receiver>
         <receiver
             android:name=".wallpaper.BootReceiver"
-            android:exported="true"
-            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>

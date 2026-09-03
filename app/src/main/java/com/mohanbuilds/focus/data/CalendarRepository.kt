@@ -23,17 +23,23 @@ class CalendarRepository(context: Context) {
     }
 
     private fun createEncryptedPrefs(context: Context): SharedPreferences {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-
-        return EncryptedSharedPreferences.create(
-            context,
-            "calendar_secure",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-        )
+        return try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            EncryptedSharedPreferences.create(
+                context,
+                "calendar_secure",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            )
+        } catch (e: Exception) {
+            // Guard against OEM Keystore failures (KeyStoreException on some
+            // Samsung/Xiaomi devices): fall back to plain prefs so the app
+            // stays usable instead of crashing.
+            context.getSharedPreferences("calendar_fallback", Context.MODE_PRIVATE)
+        }
     }
 
     private fun migrateFromPlaintext(context: Context) {
@@ -115,26 +121,29 @@ class CalendarRepository(context: Context) {
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
 
+        private fun encryptedPrefs(context: Context): SharedPreferences {
+            return try {
+                val masterKey = MasterKey.Builder(context)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
+                EncryptedSharedPreferences.create(
+                    context, "calendar_secure", masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+                )
+            } catch (e: Exception) {
+                // OEM Keystore failure guard — see createEncryptedPrefs().
+                context.getSharedPreferences("calendar_fallback", Context.MODE_PRIVATE)
+            }
+        }
+
         fun loadGoalSync(context: Context): Goal? {
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
-            val prefs = EncryptedSharedPreferences.create(
-                context, "calendar_secure", masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-            )
+            val prefs = encryptedPrefs(context)
             return prefs.getString("goal", null)
                 ?.let { runCatching { json.decodeFromString<Goal>(it) }.getOrNull() }
         }
 
         fun loadTasksSync(context: Context): List<Task> {
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
-            val prefs = EncryptedSharedPreferences.create(
-                context, "calendar_secure", masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-            )
+            val prefs = encryptedPrefs(context)
             return prefs.getString("tasks", null)
                 ?.let { runCatching { json.decodeFromString<List<Task>>(it) }.getOrNull() }
                 ?: emptyList()
