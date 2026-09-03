@@ -3,9 +3,12 @@
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application
+        android:name=".App"
         android:theme="@style/Theme.Focus"
-        android:label="Focus"
-        android:allowBackup="true"
+        android:icon="@drawable/focus"
+        android:label="Focus: Goal &amp; Habit Tracker"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:supportsRtl="true">
         <activity
             android:name=".MainActivity"
@@ -28,7 +31,8 @@
         </receiver>
         <receiver
             android:name=".wallpaper.BootReceiver"
-            android:exported="true">
+            android:exported="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
