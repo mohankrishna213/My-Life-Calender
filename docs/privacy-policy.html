@@ -18,7 +18,7 @@
       <div class="callout"><strong>In short:</strong> Focus does not require an account, does not ask you for your name or email address, and does not currently send your goals or tasks to a Focus server.</div>
 
       <h2>1. Information stored in the app</h2>
-      <p>Focus lets you create a goal with a title, start date, and end date, and create tasks and subtasks associated with dates. This information is stored locally on your device. The current implementation uses Android SharedPreferences, with encrypted preferences used when the Android Keystore is available.</p>
+      <p>Focus lets you create a goal with a title, start date, and end date, and create tasks and subtasks associated with dates. This information is stored locally on your device. The current implementation uses SharedPreferences, with encrypted preferences used when the Android Keystore is available.</p>
       <p>The app may also store local preferences describing whether notifications are enabled and whether the optional lock-screen wallpaper has been applied, along with the last local application time. These are used only to provide the corresponding features.</p>
 
       <h2>2. Information we collect</h2>
@@ -42,14 +42,14 @@
 
       <h2>7. Data retention and deletion</h2>
       <p>Your Focus goal and task data remains on your device until you edit or delete it, clear the app’s data, or uninstall the app. Because the current version has no Focus account or cloud database, we do not maintain a server-side copy that you need to request us to delete.</p>
-      <p>Android’s app-data controls can be used to clear locally stored app data. If you need help with data stored by a particular device configuration, contact us using the support route made available with the app.</p>
+      <p>Android’s app-data controls can be used to clear locally stored app data. If you need help with data stored by a particular device configuration, privacy questions or deletion-related assistance can be submitted through the project’s public GitHub repository.</p>
 
       <h2>8. Security</h2>
       <p>Focus is designed to keep its core data local. Where supported by the device, the app uses AndroidX EncryptedSharedPreferences backed by Android Keystore cryptography for its stored goal and task data. The implementation also includes a local fallback for devices where the Keystore-backed storage cannot be initialized; therefore, we do not claim that every device provides identical storage protection.</p>
       <p>No method of electronic storage is completely secure, and you should use the security controls provided by your Android device.</p>
 
       <h2>9. Children’s privacy</h2>
-      <p>Focus is not designed to knowingly collect personal information from children. The app does not require an account or request a child’s personal information for normal use. If you believe personal information has been submitted to us, please contact us so we can review the situation.</p>
+      <p>Focus is not designed to knowingly collect personal information from children. The app does not require an account or request a child’s personal information for normal use. If you believe personal information has been submitted to us, please contact us through the project’s public support channel.</p>
 
       <h2>10. Third-party services and links</h2>
       <p>The current app does not require third-party analytics, advertising, or cloud-storage services for its core functionality. This website may link to external services such as Google Play or GitHub. Those services operate under their own privacy policies and terms.</p>
@@ -57,8 +57,9 @@
       <h2>11. Changes to this policy</h2>
       <p>We may update this Privacy Policy when Focus changes or when legal, platform, or operational requirements change. The effective date at the top of this page indicates the latest version. Material changes will be reflected here before the updated policy is relied on for the affected functionality, where appropriate.</p>
 
-      <h2>12. Contact</h2>
-      <p>For privacy questions or requests concerning Focus, please use the contact method published on the official Focus / developer Google Play listing or the project’s GitHub repository. We will use information you voluntarily provide only to address your request.</p>
+      <h2>12. Privacy contact</h2>
+      <p>For privacy questions, requests, or concerns about Focus, use the project’s public GitHub repository and open an issue describing your request without including unnecessary personal information. The repository is maintained by the developer named in the project: <strong>Mohan Krishna</strong>.</p>
+      <p><a class="text-link" href="https://github.com/mohankrishna213/My-Life-Calender">Open the Focus GitHub repository ↗</a></p>
 
       <h2>13. Google Play disclosures</h2>
       <p>This policy is intended to describe the current app implementation accurately and to support the disclosures required for Google Play. Google Play’s Data safety form and other Play Console declarations are separate from this webpage and must also be completed accurately for the exact version submitted to Google Play.</p>
