@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Focus is a quiet, local-first goal and habit tracker for seeing your progress one day at a time.">
+  <meta name="theme-color" content="#F7F4EE">
+  <title>Focus — Goal &amp; Habit Tracker</title>
+  <link rel="icon" href="./assets/focus.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Focus home">
+      <span class="brand-mark" aria-hidden="true">◼</span>
+      <span>Focus</span>
+    </a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#privacy">Privacy</a>
+      <a class="nav-pill" href="./privacy-policy.html">Privacy policy</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero shell">
+      <div class="hero-copy">
+        <p class="eyebrow">GOAL &amp; HABIT TRACKER</p>
+        <h1>Make progress<br><em>visible.</em></h1>
+        <p class="hero-text">Focus turns a goal into a simple calendar of days. Add the things that matter, check them off, and watch your progress build into something you can see.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#how">See how it works</a>
+          <a class="text-link" href="./privacy-policy.html">Read privacy policy <span>↗</span></a>
+        </div>
+      </div>
+      <div class="hero-art" aria-label="Illustration of the Focus contribution calendar">
+        <div class="hero-card">
+          <div class="mini-top"><span>FOCUS</span><span class="dot"></span></div>
+          <div class="mini-title">Your next chapter</div>
+          <div class="mini-sub">128 days left</div>
+          <div class="grid" id="heroGrid"></div>
+          <div class="mini-rule"></div>
+          <div class="mini-stats"><span>Day 57 of 184</span><span>31.0%</span></div>
+          <div class="mini-date">Sep 5, 2026</div>
+          <div class="mini-tasks">3 of 4 tasks done today</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section shell" id="how">
+      <div class="section-intro">
+        <p class="eyebrow">THE IDEA</p>
+        <h2>Small actions.<br>Long horizons.</h2>
+        <p>Focus keeps the daily work lightweight and lets the bigger picture emerge naturally.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature">
+          <div class="feature-num">01</div>
+          <h3>Choose a goal</h3>
+          <p>Set one goal, give it a start and end date, and let the calendar define the journey.</p>
+        </article>
+        <article class="feature">
+          <div class="feature-num">02</div>
+          <h3>Do the daily work</h3>
+          <p>Create tasks for a day, repeat them when useful, and break larger tasks into subtasks.</p>
+        </article>
+        <article class="feature">
+          <div class="feature-num">03</div>
+          <h3>See the streak of effort</h3>
+          <p>Each day changes intensity based on completion, creating a quiet visual record of consistency.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section split shell">
+      <div>
+        <p class="eyebrow">YOUR CALENDAR</p>
+        <h2>A year, one day at a time.</h2>
+        <p class="section-text">The main view is a contribution-style grid. Empty days stay neutral. As work gets done, days become more visible—from getting started to all done.</p>
+      </div>
+      <div class="palette-card">
+        <div class="palette-grid" id="paletteGrid"></div>
+        <div class="legend"><span>less</span><span>more</span></div>
+      </div>
+    </section>
+
+    <section class="section dark-section">
+      <div class="shell lock-layout">
+        <div>
+          <p class="eyebrow dark-eyebrow">LOCK SCREEN</p>
+          <h2>Keep the goal<br>close.</h2>
+          <p class="section-text dark-text">Focus can turn the same calendar into a lock-screen view, with the countdown, current progress, and today’s task count always within reach.</p>
+        </div>
+        <div class="phone" aria-label="Focus lock screen preview">
+          <div class="phone-notch"></div>
+          <div class="phone-brand">FOCUS</div>
+          <div class="phone-title">Your next chapter</div>
+          <div class="phone-count">128 days left</div>
+          <div class="phone-grid" id="phoneGrid"></div>
+          <div class="phone-rule"></div>
+          <div class="phone-stat">Day 57 of 184 · 31.0%</div>
+          <div class="phone-date">Sep 5, 2026</div>
+          <div class="phone-tasks">3 of 4 tasks done today</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section privacy-teaser shell" id="privacy">
+      <div class="privacy-box">
+        <div>
+          <p class="eyebrow">PRIVACY</p>
+          <h2>Built around local data.</h2>
+          <p>Focus currently has no account system and no backend service. Goal and task data is kept on the device; optional reminders use Android notifications, and the optional lock-screen feature writes the generated image through Android’s wallpaper APIs.</p>
+        </div>
+        <a class="button secondary" href="./privacy-policy.html">View full policy</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer shell">
+    <span>Focus · by Mohan Krishna</span>
+    <span><a href="./privacy-policy.html">Privacy policy</a></span>
+  </footer>
+  <script src="./script.js" defer></script>
+</body>
+</html>
