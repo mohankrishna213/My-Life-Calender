@@ -9,6 +9,9 @@
 app/build/
 .github/skills
 .github/instructions
+.vscode/
+.opencode/
+.omo/
 skills-lock.json
 # Kotlin/Android generated state
 .kotlin/
@@ -23,6 +26,9 @@ skills-lock.json
 *.p12
 *.pem
 *.key
+
+# Keystore directory
+app/keystore/
 
 # Environment and local secret files
 .env

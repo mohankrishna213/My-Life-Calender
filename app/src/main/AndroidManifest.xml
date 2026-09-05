@@ -3,9 +3,13 @@
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application
+        android:name=".App"
         android:theme="@style/Theme.Focus"
-        android:label="Focus"
-        android:allowBackup="true"
+        android:icon="@drawable/focus"
+        android:roundIcon="@drawable/focus"
+        android:label="Focus: Goal &amp; Habit Tracker"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:supportsRtl="true">
         <activity
             android:name=".MainActivity"
