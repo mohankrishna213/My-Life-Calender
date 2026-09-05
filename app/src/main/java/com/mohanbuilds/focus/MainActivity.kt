@@ -253,8 +253,12 @@ fun CalendarApp(viewModel: CalendarViewModel) {
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { _ ->
+    ) { granted ->
         notificationPermissionRequested = true
+        if (granted) {
+            NotificationPreferences.setEnabled(context, true)
+            TaskCheckWorker.scheduleAll(context)
+        }
         showGoalCreatedPrompt = true
     }
 
@@ -329,6 +333,9 @@ fun CalendarApp(viewModel: CalendarViewModel) {
                             onDismiss = {
                                 showNotificationPermissionDialog = false
                                 notificationPermissionRequested = true
+                                // "No" is an explicit opt-out — keep notifications
+                                // disabled so the Settings toggle stays off.
+                                NotificationPreferences.setEnabled(context, false)
                                 showGoalCreatedPrompt = true
                             },
                         )

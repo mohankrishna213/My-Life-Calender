@@ -1,5 +1,8 @@
 package com.mohanbuilds.focus.ui
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +50,25 @@ fun SettingsScreen(onBack: () -> Unit) {
         mutableStateOf(NotificationPreferences.isEnabled(context))
     }
 
+    // One-time system permission request: asked only the first time the user
+    // turns notifications on in Settings and the app hasn't been granted
+    // POST_NOTIFICATIONS yet. Later on/off toggles never touch device
+    // permission — they only start/stop the app sending notifications.
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            notificationsEnabled = true
+            NotificationPreferences.setEnabled(context, true)
+            TaskCheckWorker.scheduleAll(context)
+        } else {
+            // Permission denied by the system — roll the toggle back off so the
+            // UI never shows ON when notifications cannot actually be delivered.
+            notificationsEnabled = false
+            NotificationPreferences.setEnabled(context, false)
+        }
+    }
+
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("Settings", fontWeight = FontWeight.Medium) },
@@ -89,11 +111,21 @@ fun SettingsScreen(onBack: () -> Unit) {
             Switch(
                 checked = notificationsEnabled,
                 onCheckedChange = { enabled ->
-                    notificationsEnabled = enabled
-                    NotificationPreferences.setEnabled(context, enabled)
                     if (enabled) {
-                        TaskCheckWorker.scheduleAll(context)
+                        if (NotificationHelper.hasNotificationPermission(context)) {
+                            // System permission already decided — enable directly,
+                            // no dialog, regardless of future toggles.
+                            notificationsEnabled = true
+                            NotificationPreferences.setEnabled(context, true)
+                            TaskCheckWorker.scheduleAll(context)
+                        } else {
+                            // First time enabling: prompt the system to allow
+                            // notifications. Actual enable happens on grant.
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
                     } else {
+                        notificationsEnabled = false
+                        NotificationPreferences.setEnabled(context, false)
                         TaskCheckWorker.cancelAll(context)
                         NotificationHelper.cancelAll(context)
                     }
