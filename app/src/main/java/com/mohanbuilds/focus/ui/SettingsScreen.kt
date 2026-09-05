@@ -1,9 +1,12 @@
 package com.mohanbuilds.focus.ui
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,18 +46,14 @@ import com.mohanbuilds.focus.notification.NotificationHelper
 import com.mohanbuilds.focus.notification.NotificationPreferences
 import com.mohanbuilds.focus.notification.TaskCheckWorker
 
+private const val PRIVACY_POLICY_URL = "https://mohankrishna213.github.io/My-Life-Calender/privacy-policy.html"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
-    var notificationsEnabled by remember {
-        mutableStateOf(NotificationPreferences.isEnabled(context))
-    }
+    var notificationsEnabled by remember { mutableStateOf(NotificationPreferences.isEnabled(context)) }
 
-    // One-time system permission request: asked only the first time the user
-    // turns notifications on in Settings and the app hasn't been granted
-    // POST_NOTIFICATIONS yet. Later on/off toggles never touch device
-    // permission — they only start/stop the app sending notifications.
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -62,8 +62,6 @@ fun SettingsScreen(onBack: () -> Unit) {
             NotificationPreferences.setEnabled(context, true)
             TaskCheckWorker.scheduleAll(context)
         } else {
-            // Permission denied by the system — roll the toggle back off so the
-            // UI never shows ON when notifications cannot actually be delivered.
             notificationsEnabled = false
             NotificationPreferences.setEnabled(context, false)
         }
@@ -85,23 +83,11 @@ fun SettingsScreen(onBack: () -> Unit) {
         )
         Spacer(Modifier.height(8.dp))
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .background(Color(0xFFE8F2EC), RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.Notifications,
-                    contentDescription = null,
-                    tint = Color(0xFF2D6A4F),
-                    modifier = Modifier.size(22.dp),
-                )
+            Box(Modifier.size(40.dp).background(Color(0xFFE8F2EC), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Notifications, contentDescription = null, tint = Color(0xFF2D6A4F), modifier = Modifier.size(22.dp))
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
@@ -113,14 +99,10 @@ fun SettingsScreen(onBack: () -> Unit) {
                 onCheckedChange = { enabled ->
                     if (enabled) {
                         if (NotificationHelper.hasNotificationPermission(context)) {
-                            // System permission already decided — enable directly,
-                            // no dialog, regardless of future toggles.
                             notificationsEnabled = true
                             NotificationPreferences.setEnabled(context, true)
                             TaskCheckWorker.scheduleAll(context)
                         } else {
-                            // First time enabling: prompt the system to allow
-                            // notifications. Actual enable happens on grant.
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
                     } else {
@@ -137,6 +119,22 @@ fun SettingsScreen(onBack: () -> Unit) {
                     uncheckedTrackColor = Color(0xFFD1CCC4),
                 ),
             )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL)))
+            }.padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(40.dp).background(Color(0xFFE8F2EC), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.PrivacyTip, contentDescription = null, tint = Color(0xFF2D6A4F), modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Privacy Policy", style = MaterialTheme.typography.bodyLarge, color = Color(0xFF173B2D))
+                Text("How Focus handles your data", style = MaterialTheme.typography.bodySmall, color = Color(0xFF5B665F))
+            }
+            Text("↗", color = Color(0xFF5B665F))
         }
     }
 }
